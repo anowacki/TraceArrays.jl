@@ -1,0 +1,13 @@
+name = "TraceArrays"
+uuid = "f40dbe1e-5bdb-4f7a-87fd-ca86551f9e3f"
+authors = ["Andy Nowacki <a.nowacki@leeds.ac.uk> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
