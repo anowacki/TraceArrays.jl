@@ -61,7 +61,7 @@ function DASArray(t::FebusTools.FebusData)
     delta = t.metadata[:Spacing][2]/1000 # Time sample spacing in ms
     evt = Seis.Event(; time=first(t.dates))
     starting_distance = first(t.distances)
-    distance_spacing = t.metadata[:Spacing][1]
+    distance_spacing = step(t.distances)
     stas = [Seis.Station() for _ in axes(data, 2)]
     picks = Seis.SeisDict{Union{Int,Symbol}, Seis.Pick{Float64}}()
     meta = Seis.SeisDict{Symbol,Any}()
