@@ -138,12 +138,13 @@ Return a range giving the distances in m along the fibre of each channel in `da`
 distances(t::DASArray) = t.starting_distance .+ (0:(size(Seis.trace(t), 2) - 1)).*t.distance_spacing
 
 """
-    read_febus(file; kwargs...) -> ::DASArray{Float64, Matrix{Float64}, Seis.Geographic{Float64}}
+    read_febus(file; kwargs...) -> ::DASArray{Float64, Matrix{Float32}, Seis.Geographic{Float64}}
 
 Read DAS data from `file` in the Febus HDF5 format.
 
 # Keyword arguments
 - `xlim=(-Inf, Inf)`: Read only a range of distances (m)
+- `xdecimate=1`: Decimate the number of channels read in.
 - `tlim=($(typemin(DateTime)), $(typemax(DateTime)))`: Read data between two `DateTime`s
 - `blocks=(1,nblocks)`: Read in only data blocks within the given range.
   (Data blocks are typically 1 s long, but can be any length.)
