@@ -38,6 +38,10 @@ the above fields:
 - `Base.length(::AbstractTraceArray)::Int`: Number of channels
 - `Base.getindex(::AbstractTraceArray, i::Int)::AbstractTrace`
 - `Base.getindex(::AbstractTraceArray, indices)::AbstractVector{<:AbstractTrace}`
+
+# Generated `Base` functions
+`==` and `hash` are defined recursively on the fields of subtypes of
+`AbstractTraceArray`.  These can be overloaded if needed.
 """
 abstract type AbstractTraceArray <: AbstractTrace end
 
@@ -57,46 +61,23 @@ end
 Base.getindex(ta::AbstractTraceArray, i) = [ta[ii] for ii in i]
 Base.length(ta::AbstractTraceArray) = size(Seis.trace(ta), 2)
 
+@generated function Base.:(==)(t1::AbstractTraceArray, t2::AbstractTraceArray)
+    fields = fieldnames(t1)
+    types_equal = t1 == t2
+    quote
+        $types_equal || return false
+        $([:(t1.$f == t2.$f || return false) for f in fields]...)
+        true
+    end
+end
+
+@generated function Base.hash(t::AbstractTraceArray, h::UInt)
+    fields = fieldnames(t)
+    quote
+        $([:(h = hash(t.$f, h)) for f in fields]...)
+        h
+    end
+end
+
 Seis.nsamples(ta::AbstractTraceArray) = size(Seis.trace(ta), 1)
 Seis.trace(ta::AbstractTraceArray) = ta.data
-
-# FIXME: Implement filtering in a more general and efficient way and make
-#        a more general TraceArray type holding time-synched arrays of recordings.
-function Seis.bandpass!(t::AbstractTraceArray, f1, f2;
-    poles=2, twopass=false, kind=DSP.Butterworth(poles)
-)
-    data = Seis.trace(t)
-    T = eltype(data)
-    temp = Trace(t.b, t.delta, Vector{T}(undef, Seis.nsamples(t)))
-    for icol in axes(Seis.trace(t), 2)
-        Seis.trace(temp) .= view(data, :, icol)
-        Seis.bandpass!(temp, f1, f2; poles, twopass, kind)
-        data[:,icol] .= Seis.trace(temp)
-    end
-    t
-end
-
-"""
-    remove_median_trace!(t::AbstractTraceArray) -> t
-
-Remove the median trace from all channels in `t`.
-
-The operation finds the median value at each time sample across all channels
-and subtracts this from all channels, modifying the original trace.
-
-See also [`remove_median_trace`](@ref).
-"""
-function remove_median_trace!(t::AbstractTraceArray)
-    data = Seis.trace(t)
-    for ichannel in axes(data, 1)
-        data[ichannel,:] .-= median(@view(data[ichannel,:]))
-    end
-    t
-end
-
-"""
-    remove_median_trace(t::AbstractTraceArray) -> t′
-
-Out-of-place version of [`remove_median_trace!`](@ref).
-"""
-remove_median_trace(t::AbstractTraceArray) = remove_median_trace!(deepcopy(t))
