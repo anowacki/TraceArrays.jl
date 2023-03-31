@@ -101,6 +101,36 @@ function DASArray(t::FebusTools.FebusData)
 end
 
 """
+    DASArray(::AbstractTraceArray, starting_distance, distance_spacing) -> ::DASArray
+
+Construct a `DASArray` from another kind of `AbstractTraceArray` (like a
+`TraceArray`).  Supply the distance of the first channel in m as
+`starting_distance` and the channel spacing in `distance_spacing`, also
+in m.
+"""
+function DASArray(t::AbstractTraceArray, starting_distance, distance_spacing)
+    M = typeof(Seis.trace(t))
+    T = typeof(Seis.starttime(t))
+    P = _geometry(t.evt)
+    DASArray{T,M,P}(Seis.starttime(t), t.delta, starting_distance, distance_spacing,
+        t.evt, t.sta, Seis.trace(t), t.picks, t.meta)
+end
+
+# Specialised constructor for `DASArray`s since `DASArray <: AbstractTraceArray`
+DASArray(t::DASArray, starting_distance, distance_spacing) = t
+
+"""
+    DASArray(array_of_traces::AbstractArray{<:AbstractTrace}, starting_distance, distance_spacing)
+
+Construct a `DASArray` from an array of single-channel traces, providing the
+distance to the first channel in m as `starting_distance`, and the channel
+spacing in m as `distance_spacing`.
+"""
+function DASArray(ts::AbstractArray{<:AbstractTrace}, starting_distance, distance_spacing)
+    DASArray(TraceArray(ts), starting_distance, distance_spacing)
+end
+
+"""
     distances(da::DASArray) -> dists
 
 Return a range giving the distances in m along the fibre of each channel in `da`.
