@@ -32,8 +32,7 @@ julia> TraceArray(filter(is_vertical, sample_data(:regional)))
 ```
 """
 function TraceArray(t::AbstractArray{<:AbstractTrace})
-    ntraces = length(t)
-    if ntraces == 0
+    if isempty(t)
         throw(ArgumentError("cannot construct a TraceArray from an empty array"))
     end
 
@@ -49,14 +48,23 @@ function TraceArray(t::AbstractArray{<:AbstractTrace})
     all(x -> Seis.origin_time(x) === Seis.origin_time(t1), t) ||
         throw(ArgumentError("all traces must have the same origin time"))
 
-    data = _matrix_from_traces(t)
+    data, T, M, P = _matrix_from_traces(t)
+    picks = Seis.SeisDict(foldl(merge, t.picks))
+    meta = Seis.SeisDict(foldl(merge, t.meta))
+
+    TraceArray{T,M,P}(Seis.starttime(t1), t1.delta, t1.evt, t.sta, data, picks, meta)
 end
 
 """
-    _matrix_from_traces(array_of_traces) -> ::Matrix
+    _matrix_from_traces(array_of_traces) -> ::Matrix, T, M, P
 
 Assuming that all the `AbstractTrace`s in `array_of_traces` have the same
 number of samples, sampling rate and start time, construct a matrix of
+the data where each column contains the samples from the corresponding
+trace.
+
+Also return `T`, `M` and `P`, the type parameters for the `TraceArray`
+which can be formed with the matrix.
 """
 function _matrix_from_traces(t::AbstractArray{<:AbstractTrace})
     T = reduce(promote_type, typeof(Seis.starttime(tt)) for tt in t)
@@ -75,8 +83,5 @@ function _matrix_from_traces(t::AbstractArray{<:AbstractTrace})
         data[:,matrix_col] .= Seis.trace(tt)
     end
 
-    picks = Seis.SeisDict(foldl(merge, t.picks))
-    meta = Seis.SeisDict(foldl(merge, t.meta))
-
-    TraceArray{T,M,P}(Seis.starttime(t1), t1.delta, t1.evt, t.sta, data, picks, meta)
+    data, T, M, P
 end
