@@ -9,6 +9,8 @@ export
     # IO
     read_febus,
     # Operations
+    cut_distance!,
+    cut_distance,
     remove_median_trace!,
     remove_median_trace
 

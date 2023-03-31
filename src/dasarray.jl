@@ -153,3 +153,87 @@ function read_febus(file; kwargs...)
     data = FebusTools.read_hdf5(file; kwargs...)
     DASArray(data)
 end
+
+"""
+    cut_distance!(t::DASArray, x1, x2; warn=true, allowempty=false) -> t
+
+Cut out channels in the `DASArray` `t` which lie between distances `x1` m
+and `x2` m.  Only channels which are at exactly `x1` m or more, and exactly
+`x2` m or less are retained.
+
+If `allowempty` is `true`, then an empty `DASArray` can be returned when
+`x1` and `x2` are either both below or above the cable distance range.
+Otherwise, an error is thrown.
+
+By default, warnings are printed if `x1` or `x2` lie outside the existing
+range of distances for `t` and the start or end distance is used instead
+to perform the cut.  Use `warn=false` to turn these warnings off.
+
+See also: [`cut_distance`](@ref).
+"""
+function cut_distance!(t::DASArray, x1, x2; warn=true, allowempty=false)
+    ib, ie = _cut_distance_indices(t, x1, x2; warn, allowempty)
+    t.data = t.data[:,ib:ie]
+    old_distances = distances(t)
+    t.starting_distance = ib in eachindex(old_distances) ? old_distances[ib] : x1
+    t.sta = t.sta[ib:ie]
+    t
+end
+
+"""
+    cut_distance(t::DASArray, x1, x2; warn=true, allowempty=false) -> t′
+
+Out-of-place version of [`cut_distance!`](@ref).
+"""
+function cut_distance(t::DASArray{T,M,P}, x1, x2; warn=true, allowempty=false) where {T,M,P}
+    ib, ie = _cut_distance_indices(t, x1, x2; warn, allowempty)
+    old_distances = distances(t)
+    starting_distance = ib in eachindex(old_distances) ? old_distances[ib] : x1
+    sta = t.sta[ib:ie]
+    data = Seis.trace(t)[:,ib:ie]
+    DASArray(t; starting_distance, sta, data)
+end
+
+function _cut_distance_indices(t::DASArray, b, e; warn=true, allowempty=false)
+    start_dist = first(distances(t))
+    end_dist = last(distances(t))
+    (b === missing || e === missing) && throw(ArgumentError("Start or end cut distance is `missing`"))
+    e < b && throw(ArgumentError("End cut distance ($e m) is before starting cut ($b m)"))
+    if b > end_dist || e < start_dist
+        if !allowempty
+            b > end_dist &&
+                throw(ArgumentError("Beginning cut distance $b m is beyond end of data ($(end_dist) m)."))
+            e < start_dist &&
+                throw(ArgumentError("End cut distance $e m is earlier than start of data ($(end_dist) m)."))
+        end
+        empty!(t.t)
+        t.b = b
+        return t
+    end
+    if b < start_dist
+        warn && @warn("Beginning cut distance $b m is before start of data.  Setting to $(start_dist) m.")
+        b = start_dist
+    end
+    if e > end_dist
+        warn && @warn("End cut distance $e m is after end of data.  Setting to $(end_dist) m.")
+        e = end_dist
+    end
+    ib = round(Int, (b - start_dist)/t.distance_spacing) + 1
+    ie = length(t) - round(Int, (end_dist - e)/t.distance_spacing)
+    ib, ie
+end
+
+
+function decimate_distance!(t::DASArray, n::Integer)
+    t.data = t.data[:,begin:n:end]
+    t.distance_spacing *= n
+    t.sta = t.sta[begin:n:end]
+    t
+end
+
+function decimate_distance(t::DASArray, n::Integer)
+    sta = t.sta[begin:n:end]
+    distance_spacing = t.distance_spacing*n
+    data = Seis.trace(t)[:,begin:n:end]
+    DASArray(t; distance_spacing, sta, data)
+end
