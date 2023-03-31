@@ -47,6 +47,37 @@ function DASArray(;
 end
 
 """
+    DASArray(t::DASArray{T,M,P}; kwargs...) -> t′
+
+Create a new `DASArray` from an existing one, but where the trace data
+is replaced by `data`.  The data matrix type (`M` parameter in the
+`DASArray` type) is replaced by the type of `data`.
+
+If the number of columns in `data` is not the same as the number of channels
+in `t`, then the vector of stations in `t′.sta` is adjusted to be the same
+length as `data`.  If there are more channels than before, the `t′.sta` vector
+will contain `#undef` elements where the additional channels are present.
+Accessing these elements before properly setting them will throw an
+`UndefRefError`.
+"""
+function DASArray(t::DASArray{T0,M0,P0};
+    T=T0,
+    P=P0,
+    b=Seis.starttime(t),
+    delta=t.delta,
+    starting_distance=first(distances(t)),
+    distance_spacing=step(distances(t)),
+    evt=deepcopy(t.evt),
+    data=deepcopy(Seis.trace(t)),
+    sta=resize!(deepcopy(t.sta), size(data, 2)),
+    picks=deepcopy(t.picks),
+    meta=deepcopy(t.meta),
+    M=typeof(data)
+) where {T0,M0,P0}
+    DASArray{T,M,P}(b, delta, starting_distance, distance_spacing, evt, sta, data, picks, meta)
+end
+
+"""
     DASArray(t::FebusTools.FebusData)
 
 Construct a `DASArray` from data read from a Febus A1 interrogator.
