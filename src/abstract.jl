@@ -29,15 +29,23 @@ Subtypes of `AbstractTraceArray` should have at least the following fields:
   one pick represents a single time across all channels.
 - `meta::Seis.SeisDict{Symbol,Any}`: Metadata for all channels.
 
+# Required methods
+- `empty(::T) where {T<:AbstractTraceArray}`: Constructor for a new empty
+  `AbstractTraceArray` where all fields are `deepcopy`ed apart from `.data`.
+  This is intended to be used to implement copying functions (e.g., `Seis.decimate`)
+  which do not need to first copy the whole `.data` field.
+
 # Fallback methods
 The following are defined for all `AbstractTraceArray`s, based on their containing
 the above fields:
 - `Seis.trace(::AbstractTraceArray)::AbstractMatrix`: The data matrix
 - `Seis.nsamples(::AbstractTraceArray)::Int`: Number of samples
 - `Seis.times(::AbstractTraceArray)`: Range giving times of each sample
+- `Base.eltype(::AbstractTraceArray)::DataType`: Element type of data matrix
 - `Base.length(::AbstractTraceArray)::Int`: Number of channels
 - `Base.getindex(::AbstractTraceArray, i::Int)::AbstractTrace`
 - `Base.getindex(::AbstractTraceArray, indices)::AbstractVector{<:AbstractTrace}`
+- `(Base.empty(::T) where {T<:AbstractTraceArray})::T`
 
 # Generated `Base` functions
 `==` and `hash` are defined recursively on the fields of subtypes of
@@ -60,6 +68,7 @@ function Base.getindex(ta::AbstractTraceArray, i::Int)
 end
 Base.getindex(ta::AbstractTraceArray, i) = [ta[ii] for ii in i]
 Base.length(ta::AbstractTraceArray) = size(Seis.trace(ta), 2)
+Base.eltype(ta::AbstractTraceArray) = eltype(Seis.trace(ta))
 
 @generated function Base.:(==)(t1::AbstractTraceArray, t2::AbstractTraceArray)
     fields = fieldnames(t1)
@@ -76,6 +85,29 @@ end
     quote
         $([:(h = hash(t.$f, h)) for f in fields]...)
         h
+    end
+end
+
+"""
+    empty(t::T) where {T<:AbstractTraceArray} -> t′::T
+
+Create a copy of an `AbstractTraceArray` `t` where all fields apart
+from the underlying trace data are copied to a new instance of `T`
+using `Base.deepcopy`.
+
+This function is not exported and is meant to be used by library code
+to efficiently implement in- and out-of-place processing functions.
+
+`t′.data` is set to be a 0×0 matrix.  It is the caller's responsibility
+to ensure that the matrix is set to be consistent with the other
+internal fields (chiefly `.sta`) before `t′` is used further.
+"""
+@generated function Base.empty(t::T) where {T<:AbstractTraceArray}
+    fields = fieldnames(t)
+    quote
+        $([f !== :data ? :($f = t.$f) : :($f = Matrix{eltype(t)}(undef, 0, 0)) for f in fields]...)
+        # $(:(T($fields)))
+        $(T)($([:($f) for f in fields]...))
     end
 end
 
