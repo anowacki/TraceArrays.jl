@@ -60,7 +60,7 @@ end
 function Seis.resample(t::AbstractTraceArray; n=nothing, delta=nothing)
     rate = _resample_rate(t, n, delta)
     t′ = empty(t)
-    t′.data = DSP.resample(Seis.trace(t′), rate; dims=1)
+    t′.data = DSP.resample(Seis.trace(t), rate; dims=1)
     t′.delta /= rate
     t′
 end
