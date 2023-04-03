@@ -25,7 +25,7 @@ function _decimate_core(t::AbstractTraceArray, n, antialias)
     nchannels = length(t)
 
     if antialias
-        newdata = DSP.resample(@view(olddata[:,i]), 1//n; dims=1)
+        newdata = DSP.resample(olddata, 1//n; dims=1)
     else
         newdata = similar(M, (npts, axes(olddata, 2)))
         for i in axes(olddata, 2)
