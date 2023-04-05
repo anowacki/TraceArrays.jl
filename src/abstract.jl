@@ -45,6 +45,9 @@ the above fields:
 - `Base.length(::AbstractTraceArray)::Int`: Number of channels
 - `Base.getindex(::AbstractTraceArray, i::Int)::AbstractTrace`
 - `Base.getindex(::AbstractTraceArray, indices)::AbstractVector{<:AbstractTrace}`
+- `Base.getindex(::AbstractTraceArray, ::Colon)::AbstractVector{<:AbstractTrace}`
+- `Base.firstindex(::AbstractTraceArray)`
+- `Base.lastindex(::AbstractTraceArray)`
 - `(Base.empty(::T) where {T<:AbstractTraceArray})::T`
 
 # Generated `Base` functions
@@ -59,7 +62,7 @@ _geometry(::Station{T,P}) where {T,P} = P
 function Base.getindex(ta::AbstractTraceArray, i::Int)
     data = Seis.trace(ta)[:,i]
     t = Seis.Trace{typeof(ta.b),typeof(data),_geometry(ta.evt)}(
-        ta.b, ta.delta, Seis.trace(ta)[:,i])
+        ta.b, ta.delta, data)
     t.evt = ta.evt
     t.sta = ta.sta[i]
     t.picks = ta.picks
@@ -67,8 +70,11 @@ function Base.getindex(ta::AbstractTraceArray, i::Int)
     t
 end
 Base.getindex(ta::AbstractTraceArray, i) = [ta[ii] for ii in i]
+Base.getindex(ta::AbstractTraceArray, ::Colon) = [ta[i] for i in firstindex(ta):lastindex(ta)]
 Base.length(ta::AbstractTraceArray) = size(Seis.trace(ta), 2)
 Base.eltype(ta::AbstractTraceArray) = eltype(Seis.trace(ta))
+Base.firstindex(ta::AbstractTraceArray) = 1
+Base.lastindex(ta::AbstractTraceArray) = length(ta)
 
 @generated function Base.:(==)(t1::AbstractTraceArray, t2::AbstractTraceArray)
     fields = fieldnames(t1)
