@@ -1,11 +1,11 @@
-function Seis.cut!(t::AbstractTraceArray, b, e; warn=true, allowempty=false)
+function Seis.cut!(t::AbstractTraceArray, b::Union{Real,DateTime}, e::Union{Real,DateTime}; warn=true, allowempty=false)
     ib, ie = _cut_time_indices(t, b, e; warn, allowempty)
     t.data = Seis.trace(t)[ib:ie,:]
     t.b = ib in eachindex(Seis.times(t)) ? Seis.times(t)[ib] : b
     t
 end
 
-function Seis.cut(t::AbstractTraceArray, b, e; warn=true, allowempty=false)
+function Seis.cut(t::AbstractTraceArray, b::Union{Real,DateTime}, e::Union{Real,DateTime}; warn=true, allowempty=false)
     ib, ie = _cut_time_indices(t, b, e; warn, allowempty)
     t′ = empty(t)
     t′.data = Seis.trace(t)[ib:ie,:]
@@ -17,7 +17,11 @@ end
     _cut_time_indices(t::AbstractTraceArray, b, e; warn, allowempty) -> ib, ie
 
 Compute the start index `ib` and end index `ie` which cuts the trace array
-`t` in time between `b` s and `e` s.
+`t` in time between `b` and `e`.
+
+`b` and `e` may be both either time in s relative to the trace array
+event time (if any), or absolute `DateTime`s.  In the latter case,
+`t.evt.time` must be set.
 """
 function _cut_time_indices(t::AbstractTraceArray, b, e; warn=true, allowempty=false)
     (b === missing || e === missing) && throw(ArgumentError("Start or end cut time is `missing`"))
@@ -44,6 +48,15 @@ function _cut_time_indices(t::AbstractTraceArray, b, e; warn=true, allowempty=fa
     ib = round(Int, (b - t.b)/t.delta) + 1
     ie = Seis.nsamples(t) - round(Int, (Seis.endtime(t) - e)/t.delta)
     ib, ie
+end
+
+function _cut_time_indices(t::AbstractTraceArray, b::DateTime, e::DateTime; warn=true, allowempty=true)
+    t.evt.time === missing && throw(ArgumentError("no event time defined for trace array"))
+    b_ms::Dates.Millisecond = b - t.evt.time
+    e_ms::Dates.Millisecond = e - t.evt.time
+    b = Dates.value(b_ms)/1000
+    e = Dates.value(e_ms)/1000
+    _cut_time_indices(t, b, e; warn, allowempty)
 end
 
 """
