@@ -11,6 +11,8 @@ export
     # Operations
     cut_distance!,
     cut_distance,
+    decimate_distance!,
+    decimate_distance,
     remove_median_trace!,
     remove_median_trace
 
@@ -18,7 +20,7 @@ import DSP
 import FebusTools
 import Seis
 
-using Dates: DateTime
+using Dates: Dates, DateTime
 using Seis: AbstractTrace, Event, Station
 using Statistics: median
 
