@@ -20,6 +20,40 @@ mutable struct TraceArray{T,M,P} <: AbstractTraceArray
 end
 
 """
+TraceArray(; kwargs...)
+
+Return a new, empty object for trace array data.  Individual fields may be defined using
+keyword arguments.
+
+!!! note
+    The keyword argument constructor for `TraceArray`s is not a stable part of the
+    API and may change.
+
+# Keyword arguments
+- `b`: Start time (relative to `.evt.time`) of the first sample (s)
+- `delta`: Sampling interval (s)
+- `data`: `AbstractMatrix` of data, where columns contain continuous
+  evenly-sampled recordings at each distance, and each column is recorded
+  a constant distance from the last.  These columns therefore correspond to
+  the gauges used in DAS recordings.  The number of channels (columns) is used
+  to create the correct number of stations in the `.sta` field.
+"""
+function TraceArray(;
+    T=Float64,
+    P=Seis.Geographic{T},
+    data=Array{T}(undef, 0, 0),
+    b=0,
+    delta=1,
+    evt=Event{T,P}(),
+    sta=[Station{T,P}() for _ in axes(data, 2)],
+    picks=Seis.SeisDict{Union{Int,Symbol}, Seis.Pick{T}}(),
+    meta=Seis.SeisDict{Symbol,Any}(),
+    M=typeof(data),
+)
+    TraceArray{T,M,P}(b, delta, evt, sta, data, picks, meta)
+end
+
+"""
     TraceArray(array_of_traces) -> ::TraceArray
 
 Construct a `TraceArray` from an array of `AbstractTrace`s.
