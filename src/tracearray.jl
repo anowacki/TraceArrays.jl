@@ -9,7 +9,7 @@ For a single `TraceArray`, no channels can be partially present, meaning
 all start and end on the same sample (although a `TraceArray` can be
 constructed from channels where gaps have been filled).
 """
-struct TraceArray{T,M,P} <: AbstractTraceArray
+mutable struct TraceArray{T,M,P} <: AbstractTraceArray
     b::T
     delta::T
     evt::Event{T,P}
