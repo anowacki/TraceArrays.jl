@@ -1,62 +1,16 @@
 function Seis.cut!(t::AbstractTraceArray, b::Union{Real,DateTime}, e::Union{Real,DateTime}; warn=true, allowempty=false)
-    ib, ie = _cut_time_indices(t, b, e; warn, allowempty)
-    t.data = Seis.trace(t)[ib:ie,:]
-    t.b = ib in eachindex(Seis.times(t)) ? Seis.times(t)[ib] : b
+    ib, ie, newb, isempty = Seis._cut_time_indices(t, b, e; warn, allowempty)
+    t.data = isempty ? similar(Seis.trace(t), 0, length(t)) : Seis.trace(t)[ib:ie,:]
+    t.b = newb
     t
 end
 
 function Seis.cut(t::AbstractTraceArray, b::Union{Real,DateTime}, e::Union{Real,DateTime}; warn=true, allowempty=false)
-    ib, ie = _cut_time_indices(t, b, e; warn, allowempty)
+    ib, ie, newb, isempty = Seis._cut_time_indices(t, b, e; warn, allowempty)
     t′ = empty(t)
-    t′.data = Seis.trace(t)[ib:ie,:]
-    t′.b = ib in eachindex(Seis.times(t′)) ? Seis.times(t′)[ib] : b
+    t′.data = isempty ? similar(Seis.trace(t), 0, length(t)) : Seis.trace(t)[ib:ie,:]
+    t′.b = newb
     t′
-end
-
-"""
-    _cut_time_indices(t::AbstractTraceArray, b, e; warn, allowempty) -> ib, ie
-
-Compute the start index `ib` and end index `ie` which cuts the trace array
-`t` in time between `b` and `e`.
-
-`b` and `e` may be both either time in s relative to the trace array
-event time (if any), or absolute `DateTime`s.  In the latter case,
-`t.evt.time` must be set.
-"""
-function _cut_time_indices(t::AbstractTraceArray, b, e; warn=true, allowempty=false)
-    (b === missing || e === missing) && throw(ArgumentError("Start or end cut time is `missing`"))
-    e < b && throw(ArgumentError("End cut time ($e) is before start cut ($b)"))
-    if b > Seis.endtime(t) || e < Seis.starttime(t)
-        if !allowempty
-            b > Seis.endtime(t) &&
-                throw(ArgumentError("Beginning cut time $b is later than end of trace ($(Seis.endtime(t)))."))
-            e < Seis.starttime(t) &&
-                throw(ArgumentError("End cut time $e is earlier than start of trace (t.b)."))
-        end
-        empty!(t.t)
-        t.b = b
-        return t
-    end
-    if b < t.b
-        warn && @warn("Beginning cut time $b is before start of trace.  Setting to $(t.b).")
-        b = t.b
-    end
-    if e > Seis.endtime(t)
-        warn && @warn("End cut time $e is after end of trace.  Setting to $(Seis.endtime(t)).")
-        e = Seis.endtime(t)
-    end
-    ib = round(Int, (b - t.b)/t.delta) + 1
-    ie = Seis.nsamples(t) - round(Int, (Seis.endtime(t) - e)/t.delta)
-    ib, ie
-end
-
-function _cut_time_indices(t::AbstractTraceArray, b::DateTime, e::DateTime; warn=true, allowempty=true)
-    t.evt.time === missing && throw(ArgumentError("no event time defined for trace array"))
-    b_ms::Dates.Millisecond = b - t.evt.time
-    e_ms::Dates.Millisecond = e - t.evt.time
-    b = Dates.value(b_ms)/1000
-    e = Dates.value(e_ms)/1000
-    _cut_time_indices(t, b, e; warn, allowempty)
 end
 
 """
