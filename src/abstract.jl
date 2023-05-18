@@ -104,7 +104,7 @@ using `Base.deepcopy`.
 This function is not exported and is meant to be used by library code
 to efficiently implement in- and out-of-place processing functions.
 
-`t′.data` is set to be a 0×0 matrix.  It is the caller's responsibility
+`t′.data` is set to be a 0×nchannels, matrix.  It is the caller's responsibility
 to ensure that the matrix is set to be consistent with the other
 internal fields (chiefly `.sta`) before `t′` is used further.
 """
