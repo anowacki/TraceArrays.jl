@@ -8,7 +8,7 @@ gauge (channel) spacing and distance, which is useful for some things.
 
 ---
 
-    DASArray()
+    DASArray(; kwargs...)
 
 Return a new, empty object for DAS data.  Individual fields may be defined using
 keyword arguments.
@@ -16,6 +16,17 @@ keyword arguments.
 !!! note
     The keyword argument constructor for `DASArray`s is not a stable part of the
     API and may change.
+
+# Keyword arguments
+- `data`: `AbstractMatrix` of data, where columns contain continuous
+  evenly-sampled recordings at each distance, and each column is recorded
+  a constant distance from the last.  These columns therefore correspond to
+  the gauges used in DAS recordings.  The number of channels (columns) is used
+  to create the correct number of stations in the `.sta` field.
+- `starting_distace`: Distance from the interrogator of the first channel (m)
+- `distance_spacing`: Spacing between channels (m)
+- `b`: Start time (relative to `.evt.time`) of the first sample (s)
+- `delta`: Sampling interval (s)
 """
 mutable struct DASArray{T,M,P} <: AbstractTraceArray
     b::T
