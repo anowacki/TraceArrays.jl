@@ -57,3 +57,16 @@ function _normalise_all!(data::AbstractMatrix, val)
     data .= data .* val/maxval
     nothing
 end
+
+"""
+    reverse!(t::AbstractTraceArray) -> t
+
+Reverse the order of the channels in `t`.
+"""
+function Base.reverse!(t::AbstractTraceArray)
+    reverse!(Seis.trace(t); dims=1)
+    reverse!(t.sta)
+    t
+end
+
+Base.reverse(t::AbstractTraceArray) = reverse!(deepcopy(t))
