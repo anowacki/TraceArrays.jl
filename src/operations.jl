@@ -42,7 +42,9 @@ Normalise all columns in `data` to have the maximum absolute value
 function _normalise_columns!(data::AbstractMatrix, val)
     @inbounds for icol in axes(data, 2)
         maxval = maximum(abs, @view(data[:,icol]))
-        data[:,icol] .= @view(data[:,icol]) .* (val/maxval)
+        if !iszero(maxval)
+            data[:,icol] .= @view(data[:,icol]) .* (val/maxval)
+        end
     end
 end
 
@@ -54,7 +56,9 @@ in the whole matrix is `val`.
 """
 function _normalise_all!(data::AbstractMatrix, val)
     maxval = maximum(abs, data)
-    data .= data .* val/maxval
+    if !iszero(maxval)
+        data .= data .* val/maxval
+    end
     nothing
 end
 
