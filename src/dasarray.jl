@@ -248,3 +248,114 @@ function decimate_distance(t::DASArray, n::Integer)
     data = Seis.trace(t)[:,begin:n:end]
     DASArray(t; distance_spacing, sta, data)
 end
+
+"""
+    integrate_distance(t::DASArray, n=3) -> t′
+
+Integrate the data in `t` with respect to distance along the
+cable.  If data are in units of strain, therefore, they are
+converted to units of displacement (and similarly for strain rate
+to velocity).  No unit conversion is made, so data which are in
+nanostrain convert to nm, and likewise nanostrain/s becomes
+nm/s.
+
+`n` determines how many points are used in the integration and
+must be an odd number.  This determines the number of points
+used for the trapezoidal integration and must be an odd number.
+
+The number of channels is reduced by `n - 1`.  For example,
+when `n` is 3, `t′` has 2 fewer channels than before, and the
+first and last channels in `t` are removed from `t′`.
+
+# Example
+```
+julia> t = DASArray(; data=[0. 1 0 -1; 1 2 -2 1], b=0, delta=1, starting_distance=0, distance_spacing=0.5);
+
+julia> integrate_distance(t)
+2×2 Matrix{Float64}:
+ 0.5    0.0
+ 0.75  -0.25
+```
+"""
+function integrate_distance(t::DASArray, n::Integer=3)
+    isodd(n) && n > 1 || throw(ArgumentError("`n` must be and odd number 3 or more"))
+
+    nchannels = length(t)
+    nchannels′ = nchannels - n + 1
+    npts = Seis.nsamples(t)
+    t′ = empty(t)
+    data = Seis.trace(t)
+    data′ = similar(data, npts, nchannels′)
+    t′.data = data′
+
+    u = similar(data, nchannels)
+    U = similar(data, nchannels′)
+
+    # Saves a divide in each timestep
+    spacing_by_2 = t.distance_spacing/2
+
+    for i in axes(data, 1)
+        u = data[i,:]
+        U = data′[i,:]
+        _integrate!(U, u, spacing_by_2, n)
+        data′[i,:] .= U
+    end
+
+    # Update station information
+    t′.sta = t′.sta[(begin + n÷2):(end - n÷2)]
+    t′.starting_distance += (n÷2)*t′.distance_spacing
+
+    t′
+end
+
+"""
+    _integrate!(U, u, spacing_by_2, n) -> U
+
+Integrate the values of `u` using an `n`-point trapezium rule, putting
+the output into `U`.  `U` must be the correct size, i.e., it must have
+`n - 1` points fewer than `u`.  `spacing_by_2` is half the even spacing
+between points in `u`.
+
+# Example
+```
+julia> u = 1:7;
+
+julia> U = similar(u, 5);
+
+julia> TraceArrays._integrate!(U, u, 10/2, 3)
+5-element Vector{Float64}:
+  40.0
+  60.0
+  80.0
+ 100.0
+ 120.0
+```
+"""
+function _integrate!(U, u, spacing_by_2, n)
+    # Special cases which are quicker
+    if n == 3
+        for i in eachindex(U)
+            U[i] = spacing_by_2*(u[i] + 2*u[i+1] + u[i+2])
+        end
+
+    elseif n == 5
+        for i in eachindex(U)
+            U[i] = spacing_by_2*(u[i] + 2*(u[i+1] + u[i+2] + u[i+3]) + u[i+4])
+        end
+
+    # General case: much slower, though `@inbounds` speeds up by 35%
+    else
+        for i in eachindex(U)
+            # First point
+            U[i] = u[i]
+            # Inner points.  Only runs twice for n == 4.
+            for j in (i + 1):(i + n - 2)
+                U[i] += 2*u[j]
+            end
+            # Last point
+            U[i] += u[i+n-1]
+            U[i] *= spacing_by_2
+        end
+    end
+    U
+end

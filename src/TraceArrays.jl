@@ -13,6 +13,7 @@ export
     cut_distance,
     decimate_distance!,
     decimate_distance,
+    integrate_distance,
     remove_median_trace!,
     remove_median_trace
 
