@@ -29,6 +29,7 @@ using Statistics: median
 include("abstract.jl")
 include("tracearray.jl")
 include("dasarray.jl")
+include("show.jl")
 # Methods
 include("filtering.jl")
 include("operations.jl")
