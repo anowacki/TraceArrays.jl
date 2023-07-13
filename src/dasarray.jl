@@ -261,7 +261,7 @@ nm/s.
 
 `n` determines how many points are used in the integration and
 must be an odd number.  This determines the number of points
-used for the trapezoidal integration and must be an odd number.
+used for the trapezoidal integration.
 
 The number of channels is reduced by `n - 1`.  For example,
 when `n` is 3, `t′` has 2 fewer channels than before, and the
@@ -278,7 +278,7 @@ julia> integrate_distance(t)
 ```
 """
 function integrate_distance(t::DASArray, n::Integer=3)
-    isodd(n) && n > 1 || throw(ArgumentError("`n` must be and odd number 3 or more"))
+    isodd(n) && n > 1 || throw(ArgumentError("`n` must be an odd number 3 or more"))
 
     nchannels = length(t)
     nchannels′ = nchannels - n + 1
