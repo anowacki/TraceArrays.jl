@@ -17,6 +17,10 @@ implementation of `AbstractTraceArray` subtype need not be exactly like this).
 Indexing into a `AbstractTraceArray` with a single index gives you a single `Trace`
 back; single-dimension slicing gives you a vector of `Trace`s.
 
+!!! note
+    In a future version of TraceArrays (or when it is merged into Seis.jl)
+    slicing will instead return a new `AbstractTraceArray`.
+
 # Required fields
 Subtypes of `AbstractTraceArray` should have at least the following fields:
 - `b`: Time in s relative to the origin time (if any) set in `evt.time`
