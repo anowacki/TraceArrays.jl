@@ -54,6 +54,14 @@ function Base.show(io::IO, ::MIME"text/plain", t::T) where {T<:AbstractTraceArra
         end
     end
 
+    for field in propertynames(t)
+        if field in (:b, :delta, :sta, :evt, :picks, :meta, :data)
+            continue
+        else
+            padded_print(field, getproperty(t, field))
+        end
+    end
+
     print(io, "\n Trace:")
     padded_print("picks", "")
     print(io, length(t.picks))
