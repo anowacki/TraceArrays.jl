@@ -137,6 +137,21 @@ function _normalise_all!(data::AbstractMatrix, val)
 end
 
 """
+    Seis.remove_trend!(t::AbstractTraceArray)
+
+Remove the linear trend from all channels of `t`, where the trend is
+found by fitting a straight line to the linear stack of all channels.
+"""
+function Seis.remove_trend!(t::AbstractTraceArray)
+    time = Seis.times(t)
+    data = Seis.trace(t)
+    stack = vec(sum(data, dims=2))./length(t)
+    x0, x1 = Seis.linear_regression(time, stack)
+    data .= data .- (x0 .+ x1.*time)
+    t
+end
+
+"""
     reverse!(t::AbstractTraceArray) -> t
 
 Reverse the order of the channels in `t`.
