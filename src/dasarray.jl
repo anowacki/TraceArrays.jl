@@ -243,6 +243,13 @@ function _cut_distance_indices(t::DASArray, b, e; warn=true, allowempty=false)
 end
 
 
+"""
+    decimate_distance!(t::DASArray, n::Integer) -> t
+
+Naively decimate the channels in `t`, taking every `n`th channel and
+removing the rest.  The data field of `t` is a copy of the data
+originally used, and the original data array is left untouched.
+"""
 function decimate_distance!(t::DASArray, n::Integer)
     t.data = t.data[:,begin:n:end]
     t.distance_spacing *= n
@@ -250,6 +257,13 @@ function decimate_distance!(t::DASArray, n::Integer)
     t
 end
 
+"""
+    decimate_distance(t::DASArray, n::Integer) -> t
+
+Copying version of [`decimate_distance`](@ref).
+
+See also: [`decimate_distance`](@ref).
+"""
 function decimate_distance(t::DASArray, n::Integer)
     sta = t.sta[begin:n:end]
     distance_spacing = t.distance_spacing*n
