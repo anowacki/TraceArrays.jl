@@ -163,3 +163,60 @@ function Base.reverse!(t::AbstractTraceArray)
 end
 
 Base.reverse(t::AbstractTraceArray) = reverse!(deepcopy(t))
+
+"""
+    Seis.taper!(t::AbstractTraceArray, width=0.05; form=:hanning)
+
+Taper all channels in `t` with a taper of `width`, which is a fraction
+of the whole trace between 0 and 0.5.
+"""
+function Seis.taper!(t::AbstractTraceArray, width=0.05; form::Symbol=:hanning)
+    form in (:hamming, :hanning, :cosine) ||
+        throw(ArgumentError("`form` must be one of `:hamming`, `:hanning` or `:cosine`"))
+    0 < width <= 0.5 || throw(ArgumentError("`width` must be between 0 and 0.5"))
+    n = max(2, floor(Int, (Seis.nsamples(t) + 1)*width))
+
+    T = eltype(Seis.trace(t))
+    npts = Seis.nsamples(t)
+
+    data = Seis.trace(t)
+    if firstindex(data, 1) != 1 && firstindex(data, 2) != 1
+        throw(ArgumentError("data arrays which do not start at 1 are not supported"))
+    end
+
+    if form in (:hamming, :hanning)
+        omega = T(π/n)
+        if form == :hanning
+            f0 = f1 = T(0.50)
+        elseif form == :hamming
+            f0 = T(0.54)
+            f1 = T(0.46)
+        end
+
+        for ichannel in 1:length(t)
+            @inbounds for i in 0:n-1
+                amp = f0 - f1*cos(omega*T(i))
+                j = npts - i
+                data[i+1,ichannel] *= amp
+                data[j,ichannel] *= amp
+            end
+        end
+    end
+
+    if form == :cosine
+        omega = T(π/2n)
+        for ichannel in 1:length(t)
+            @inbounds for i in 0:n-1
+                amp = sin(omega*i)
+                j = npts - i
+                data[i+1,ichannel] *= amp
+                data[j,ichannel] *= amp
+            end
+        end
+    end
+
+    t
+end
+
+Seis.taper(t::AbstractTraceArray, args...; kwargs...) =
+    Seis.taper!(deepcopy(t), args...; kwargs...)
