@@ -165,6 +165,14 @@ function read_febus(file; kwargs...)
     DASArray(data)
 end
 
+function _check_trace_consistency(ts::NTuple{N,DASArray} where N)
+    a, rest = Iterators.peel(ts)
+    if !all(x -> step(distances(a)) == step(distances(x)), rest)
+        throw(ArgumentError("all traces must have the same distance spacing"))
+    end
+    _check_abstracttracearray_consistency(ts)
+end
+
 """
     cut_distance!(t::DASArray, x1, x2; warn=true, allowempty=false) -> t
 

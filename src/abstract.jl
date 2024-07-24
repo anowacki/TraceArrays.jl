@@ -49,6 +49,8 @@ the above fields:
 - `Base.firstindex(::AbstractTraceArray)`
 - `Base.lastindex(::AbstractTraceArray)`
 - `(Base.empty(::T) where {T<:AbstractTraceArray})::T`
+- `_check_abstracttracearray_consistency(::AbstractTraceArray, ::Vararg{AbstractTraceArray})`:
+  Whether two or more arrays can be `append!`ed or `vcat`ted together.
 
 # Generated `Base` functions
 `==` and `hash` are defined recursively on the fields of subtypes of
@@ -95,6 +97,34 @@ end
 end
 
 """
+    append!(a::AbstractTraceArray, rest::AbstractTraceArray...; merge_meta=true) -> a
+
+Append the traces in `rest` to `a`, requiring that they all have
+consistent start times, sampling rates and trace lengths.
+
+Metadata are merged together by default (unless `merge_meta` is `false`).
+If any entries of the same name occur in both, then those in `a` are
+used in preference; otherwise later entries in the argument list are kept.
+"""
+function Base.append!(a::AbstractTraceArray, rest::Vararg{AbstractTraceArray}; merge_meta=true)
+    isempty(rest) && return a
+
+    # Throw errors here if any problems
+    _check_trace_consistency((a, rest...))
+
+    a.data = hcat(Seis.trace(a), Seis.trace.(rest)...)
+    for t in rest
+        append!(a.sta, t.sta)
+    end
+    if merge_meta
+        for t in rest
+            a.meta = merge(t.meta, a.meta)
+        end
+    end
+    a
+end
+
+"""
     empty(t::T) where {T<:AbstractTraceArray} -> t′::T
 
 Create a copy of an `AbstractTraceArray` `t` where all fields apart
@@ -115,6 +145,72 @@ internal fields (chiefly `.sta`) before `t′` is used further.
         # $(:(T($fields)))
         $(T)($([:($f) for f in fields]...))
     end
+end
+
+"""
+    Base.vcat(a::AbstractTraceArray, rest::AbstractTraceArray...; merge_meta=true)
+
+Append the traces in `rest` to `a`, requiring that they both have
+consistent start times, sampling rates and trace lengths, returning
+copies.
+
+Metadata are merged together by default (unless `merge_meta` is `false`).
+If any entries of the same name occur, then those in `a` are used in
+preference; otherwise later entries in the argument list are kept.
+"""
+function Base.vcat(a::AbstractTraceArray, rest::Vararg{AbstractTraceArray}; merge_meta=true)
+    isempty(rest) && return deepcopy(a)
+
+    _check_trace_consistency((a, rest...))
+    out = empty(a)
+    out.data = hcat(Seis.trace(a), Seis.trace.(rest)...)
+    out.sta = vcat(deepcopy(a.sta), map(x -> deepcopy(x.sta), rest)...)
+    out.meta = deepcopy(a.meta)
+    if merge_meta
+        for t in rest
+            out.meta = merge(deepcopy(t.meta), out.meta)
+        end
+    end
+    out
+end
+
+"""
+    _check_trace_consistency(ts::NTuple{N,AbstractTraceArray} where N)
+
+Throw an error if the traces in `ts` cannot be sensibly joined together
+into a new `AbstractTraceArray` with [`vcat`](@ref Base.vcat(::AbstractTraceArray, ::Vararg{AbstractTraceArray}))
+or [`append!`](@ref Base.append(::AbstractTraceArray, ::Vararg{AbstractTraceArray})).
+
+New subtypes of `AbstractTraceArray` may implement methods for this function
+which impose additional checks on whether all the items in `ts` are
+compatible with each other.
+"""
+function _check_trace_consistency(ts::NTuple{N,AbstractTraceArray} where N)
+    _check_abstracttracearray_consistency(ts)
+end
+
+"""
+    _check_abstracttracearray_consistency(ts)
+
+Function which should throw if any `AbstractTraceArrays` cannot be
+sensible merged together with `vcat` or `append`.
+"""
+function _check_abstracttracearray_consistency(ts)
+    if length(ts) < 2
+        throw(ArgumentError("number of trace arrays must be 2 or more"))
+    end
+
+    t1, rest = Iterators.peel(ts)
+
+    all(x -> Seis.nsamples(x) == Seis.nsamples(t1), rest) ||
+        throw(ArgumentError("all traces must be the same length"))
+    all(x -> Seis.starttime(x) == Seis.starttime(t1), rest) ||
+        throw(ArgumentError("all traces must have the same start time"))
+    all(x -> x.delta == t1.delta, rest) ||
+        throw(ArgumentError("all traces must have the same sampling interval"))
+    # Use `===` to allow all to be missing
+    all(x -> Seis.origin_time(x) === Seis.origin_time(t1), rest) ||
+        throw(ArgumentError("all traces must have the same origin time"))
 end
 
 Seis.nsamples(ta::AbstractTraceArray) = size(Seis.trace(ta), 1)
