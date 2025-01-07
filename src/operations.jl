@@ -13,6 +13,84 @@ function Seis.cut(t::AbstractTraceArray, b::Union{Real,DateTime}, e::Union{Real,
     t′
 end
 
+function Seis.differentiate!(t::AbstractTraceArray; points=2)
+    t.data, t.b = _differentiate(Seis.trace(t), points, t.b, t.delta)
+    t
+end
+
+function Seis.differentiate(t::AbstractTraceArray; points=2)
+    t′ = empty(t)
+    t′.data, t′.b = _differentiate(Seis.trace(t), points, t.b, t.delta)
+    t′
+end
+
+"""
+    _differentiate(data, points, b, delta) -> data′, b
+
+Differentiate the matrix `data` along its columns, assuming each column
+is an evenly-sampled series with spacing `delta` starting at `b` seconds.
+Return the differentiated matrix `data′` and new start time `b′`.
+"""
+function _differentiate(data, points, b, delta)
+    points in (2, 3, 5) ||
+        throw(ArgumentError("`points` must be one of (2, 3, 5)"))
+
+    npts = size(data, 1)
+
+    if npts < points
+        throw(ArgumentError("cannot $points-point differentiate length-$npts trace array"))
+    end
+
+    if points == 2
+        data′ = similar(data, size(data, 1) - 1, size(data, 2))
+
+        for j in axes(data, 2)
+            @inbounds for i in 0:(npts - 2)
+                data′[begin+i,j] = (data[begin+i+1,j] - data[begin+i,j])/delta
+            end
+        end
+
+        b += delta/2
+    elseif points == 3
+        data′ = similar(data, size(data, 1) - 2, size(data, 2))
+
+        for j in axes(data, 2)
+            @inbounds for i in 1:(npts - 2)
+                data′[begin+i-1,j] = (data[begin+i+1,j] - data[begin+i-1,j])/(2*delta)
+            end
+        end
+
+        b += delta
+    elseif points == 5
+        data′ = similar(data, size(data, 1) - 2, size(data, 2))
+
+        for j in axes(data, 2)
+            t1 = (data[begin+2,j] - data[begin,j])/(2delta)
+            t2 = (data[end,j] - data[end-2,j])/(2delta)
+            d1 = 2/(3delta)
+            d2 = 1/(12delta)
+            t_minus_2 = data[begin,j]
+            t_minus_1 = data[begin+1,j]
+            tt = data[begin+2,j]
+            t_plus_1 = data[begin+3,j]
+            @inbounds for i in 1:(npts - 4)
+                t_plus_2 = data[begin+i+3,j]
+                data′[begin+i,j] = d1*(t_plus_1 - t_minus_1) - d2*(t_plus_2 - t_minus_2)
+                t_minus_2 = t_minus_1
+                t_minus_1 = tt
+                tt = t_plus_1
+                t_plus_1 = t_plus_2
+            end
+            data′[begin,j] = t1
+            data′[end,j] = t2
+        end
+
+        b += delta
+    end
+
+    data′, b
+end
+
 """
     Seis.integrate!(t::AbstractTraceArray, method=:trapezium) -> t
 
