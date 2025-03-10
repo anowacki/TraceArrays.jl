@@ -1,11 +1,23 @@
-function Seis.cut!(t::AbstractTraceArray, b::Union{Real,DateTime}, e::Union{Real,DateTime}; warn=true, allowempty=false)
+function Seis.cut!(
+    t::AbstractTraceArray,
+    b::Union{Real,Dates.AbstractDateTime},
+    e::Union{Real,Dates.AbstractDateTime};
+    warn=true,
+    allowempty=false,
+)
     ib, ie, newb, isempty = Seis._cut_time_indices(t, b, e; warn, allowempty)
     t.data = isempty ? similar(Seis.trace(t), 0, length(t)) : Seis.trace(t)[ib:ie,:]
     t.b = newb
     t
 end
 
-function Seis.cut(t::AbstractTraceArray, b::Union{Real,DateTime}, e::Union{Real,DateTime}; warn=true, allowempty=false)
+function Seis.cut(
+    t::AbstractTraceArray,
+    b::Union{Real,Dates.AbstractDateTime},
+    e::Union{Real,Dates.AbstractDateTime};
+    warn=true,
+    allowempty=false,
+)
     ib, ie, newb, isempty = Seis._cut_time_indices(t, b, e; warn, allowempty)
     t′ = empty(t)
     t′.data = isempty ? similar(Seis.trace(t), 0, length(t)) : Seis.trace(t)[ib:ie,:]

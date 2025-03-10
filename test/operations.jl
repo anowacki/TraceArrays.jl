@@ -1,8 +1,56 @@
+import Dates
 using Seis
 using TraceArrays
 using Test
 
 @testset "Operations" begin
+    @testset "cut" begin
+        ntraces = 3
+        ts = [Trace(0.5, 1, 1:20) for _ in 1:ntraces]
+        origin_time!.(ts, Dates.DateTime(2000))
+
+        @testset "$T" for T in (TraceArray, DASArray)
+            arr = if T == TraceArray
+                T(ts)
+            else
+                T(ts, 0, 1)
+            end
+
+            @testset "Relative" begin
+                t1 = 1.1
+                t2 = 2.9
+                arr_cut = cut(arr, t1, t2; warn=false)
+                @test nsamples(arr_cut) == 2
+                @test times(arr_cut) == 1.5:1.0:2.5
+                @test all(
+                    dates(arr_cut) .== Dates.DateTime.(2000, 1, 1, 0, 0, (1, 2), 500)
+                )
+                @test trace(arr_cut) == trace(arr)[2:3,:]
+
+                @testset "In-place" begin
+                    @test cut!(deepcopy(arr), t1, t2; warn=false) == arr_cut
+                end
+            end
+
+            @testset "Date" begin
+                d1 = Dates.DateTime(2000, 1, 1, 0, 0, 1, 100)
+                d2 = Dates.DateTime(2000, 1, 1, 0, 0, 2, 900)
+                arr_cut = cut(arr, d1, d2)
+
+                @test nsamples(arr_cut) == 2
+                @test times(arr_cut) == 1.5:1.0:2.5
+                @test all(
+                    dates(arr_cut) .== Dates.DateTime.(2000, 1, 1, 0, 0, (1, 2), 500)
+                )
+                @test trace(arr_cut) == trace(arr)[2:3,:]
+
+                @testset "In-place" begin
+                    @test cut!(deepcopy(arr), d1, d2; warn=false) == arr_cut
+                end
+            end
+        end
+    end
+
     @testset "differentiate" begin
         ntraces = 3
         ts = [Trace(0.34, 0.25, rand(20)) for _ in 1:ntraces]
