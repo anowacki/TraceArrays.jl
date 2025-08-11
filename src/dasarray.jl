@@ -272,6 +272,115 @@ function decimate_distance(t::DASArray, n::Integer)
 end
 
 """
+    differentiate_distance(t::DASArray; points::Integer=2) -> t′
+
+Differentiate the data in `t` with respect to distance along the
+cable using `points`-point finite differencing.
+
+If data are in units of strain, they are converted to be proportional
+to units of length-squared.  No unit conversion is
+made, so data which are in nanostrain convert to nm², nanostrain
+per second go to nm²/s, and so on.
+
+The number of channels is reduced in the operation, and each channels
+coordinates are averaged in the new trace.
+
+### Available algorithms
+
+(Pseudocode descriptions below drop the time index for clarity.)
+
+- `points == 2`: Two-point.
+  `t′.data[i] = (t.data[i+1] - t.data[i])/t.distance_spacing`.
+  Non-central difference, so `t.starting_distance` is increased by half
+  `t.distance_spacing`.
+  The number of channels is reduced by 1.
+- `points == 3`: Three-point.
+  `t′.data[i] = (t.data[i+1] - t.data[i-1])/(2 * t.distance_spacing)`.
+  Central difference.  `t.starting_distance` is increased by `t.distance_spacing`;
+  the number of channels is reduced by 2.
+- `points == 5`: Five-point.
+  `t′.data[i] =
+    (2/3)*(t.data[i+1] - t.data[i-1])/t.distance_spacing
+    - (1/12)*(t.data[i+2] - t.data[i-2])/t.distance_spacing`,
+  except for the first and last points, which use a three-point central difference
+  meaning only two points fewer are retained as for `points == 3`.
+  Central difference.  `t.starting_distance` is increased by
+  `t.distance_spacing`; number of channels reduced by 2.
+
+"""
+function differentiate_distance(t::DASArray; points::Integer=2)
+    points in (2, 3, 5) ||
+        throw(ArgumentError("`points` must be one of (2, 3, 5)"))
+
+    t′ = empty(t)
+    t′.sta = deepcopy(t.sta)
+    if points == 2
+        pop!(t′.sta)
+    elseif points == 3 || points == 5
+        pop!(t′.sta)
+        pop!(t′.sta)
+    end
+    for (st′, pos) in zip(t′.sta, _average_channel_positions(t.sta, points))
+        st′.pos = pos
+    end
+
+    # Use the `_differentiate` function which is meant for time series
+    # and does the integration along columns, so permute our data and
+    # provide spatial sampling interval and start distance
+    data_permuted, t′.starting_distance = _differentiate(
+        permutedims(Seis.trace(t)), points, t.starting_distance, t.distance_spacing
+    )
+    t′.data = permutedims(data_permuted)
+
+    t′
+end
+
+function differentiate_distance!(t::DASArray; points::Integer=2)
+    t′ = differentiate_distance(t; points)
+    t.data = Seis.trace(t′)
+    t.sta = t′.sta
+    t
+end
+
+"""
+    _average_channel_positions(stas::AbstractArray{<:Seis.Station}, points) -> pos::Vector{<:Seis.Position}
+
+Return a vector of positions which are the average channel positions for a
+`points`-point finite difference differentiation in space.  `pos` will
+be shorter than `stas` due to the differentiation.
+"""
+function _average_channel_positions(stas::AbstractArray{<:Seis.Station}, points)
+    if points == 3 || points == 5
+        [sta.pos for sta in @view(stas[(begin+1):(end-1)])]
+    elseif points == 2
+        [
+            _average_position(stas[i].pos, stas[i+1].pos)
+            for i in eachindex(stas)[begin:(end-1)]
+        ]
+    else
+        throw(ArgumentError("points must be 2, 3, or 5"))
+    end
+end
+
+"""
+    _average_position(a::Seis.Position, b::Seis.Position) -> pos
+
+Return the mean position of `a` and `b` obtained by simple averaging of
+each coordinate separately.  This is fine for `Seis.Cartesian`, but may
+be bad for `Seis.Geographic` if `a` and `b` are far apart.  A warning is
+thrown in that case.
+"""
+function _average_position(a::Seis.Geographic{T}, b::Seis.Geographic{T}) where T
+    if max(abs(a.lon - b.lon), abs(a.lat - b.lat)) > 5
+        @warn("performing spatial averaging for two stations more than 5° apart")
+    end
+    Seis.Geographic{T}((a.lon + b.lon)/2, (a.lat + b.lat)/2, (a.elev + b.elev)/2)
+end
+function _average_position(a::Seis.Cartesian{T}, b::Seis.Cartesian{T}) where T
+    Seis.Cartesian{T}((a.x + b.x)/2, (a.y + b.y)/2, (a.z + b.z)/2)
+end
+
+"""
     integrate_distance(t::DASArray, n=3) -> t′
 
 Integrate the data in `t` with respect to distance along the
