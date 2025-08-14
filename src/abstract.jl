@@ -65,22 +65,29 @@ abstract type AbstractTraceArray <: AbstractTrace end
 _geometry(::Event{T,P}) where {T,P} = P
 _geometry(::Station{T,P}) where {T,P} = P
 
-function Base.getindex(ta::AbstractTraceArray, i::Int)
-    data = Seis.trace(ta)[:,i]
+function Base.getindex(ta::AbstractTraceArray, i::Integer)
+    data = Seis.trace(ta)[:,begin+i-1]
     t = Seis.Trace{typeof(ta.b),typeof(data),_geometry(ta.evt)}(
         ta.b, ta.delta, data)
     t.evt = ta.evt
-    t.sta = ta.sta[i]
+    t.sta = ta.sta[begin+i-1]
     t.picks = ta.picks
     t.meta = ta.meta
     t
 end
 Base.getindex(ta::AbstractTraceArray, i) = [ta[ii] for ii in i]
 Base.getindex(ta::AbstractTraceArray, ::Colon) = [ta[i] for i in firstindex(ta):lastindex(ta)]
+Base.axes(ta::AbstractTraceArray) = (Base.OneTo(length(ta)),)
+Base.collect(ta::AbstractTraceArray) = [tt for tt in ta]
+Base.CartesianIndices(ta::AbstractTraceArray) = CartesianIndices(axes(ta))
+Base.LinearIndices(ta::AbstractTraceArray) = LinearIndices(axes(ta))
 Base.length(ta::AbstractTraceArray) = size(Seis.trace(ta), 2)
 Base.eltype(ta::AbstractTraceArray) = eltype(Seis.trace(ta))
-Base.firstindex(ta::AbstractTraceArray) = 1
-Base.lastindex(ta::AbstractTraceArray) = length(ta)
+Base.firstindex(ta::AbstractTraceArray) = first(LinearIndices(ta))
+Base.lastindex(ta::AbstractTraceArray) = last(LinearIndices(ta))
+Base.keys(ta::AbstractTraceArray) = LinearIndices(ta)
+Base.iterate(ta::AbstractTraceArray, i=firstindex(ta)) = i > lastindex(ta) ? nothing : (ta[i], i + 1)
+Base.pairs(ta::AbstractTraceArray) = Base.Pairs(values(ta), keys(ta))
 
 @generated function Base.:(==)(t1::AbstractTraceArray, t2::AbstractTraceArray)
     fields = fieldnames(t1)
