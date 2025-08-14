@@ -335,6 +335,11 @@ function differentiate_distance(t::DASArray; points::Integer=2)
     t′
 end
 
+"""
+    differentiate_distance!(t::DASArray; points::Integer=2) -> t
+
+In-place version of [`differentiate_distance`](@ref).
+"""
 function differentiate_distance!(t::DASArray; points::Integer=2)
     t′ = differentiate_distance(t; points)
     t.data = Seis.trace(t′)
