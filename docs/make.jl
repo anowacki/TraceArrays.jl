@@ -5,7 +5,7 @@ DocMeta.setdocmeta!(TraceArrays, :DocTestSetup, :(using TraceArrays); recursive=
 
 makedocs(;
     modules=[TraceArrays],
-    authors="Andy Nowacki <a.nowacki@leeds.ac.uk> and contributors",
+    authors="Andy Nowacki <a.nowacki@leeds.ac.uk>",
     repo="https://github.com/anowacki/TraceArrays.jl/blob/{commit}{path}#{line}",
     sitename="TraceArrays.jl",
     format=Documenter.HTML(;
