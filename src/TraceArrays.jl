@@ -20,6 +20,9 @@ export
     integrate_distance,
     remove_median_trace!,
     remove_median_trace,
+    # Plotting
+    plot_heatmap,
+    plot_heatmap!,
     # Reexported Seis things
     AbstractTrace,
     Event,
@@ -40,6 +43,8 @@ export
     normalise,
     normalise!,
     nsamples,
+    plot_section,
+    plot_section!,
     remove_trend,
     remove_trend!,
     starttime,
@@ -71,6 +76,8 @@ import Seis: AbstractTrace,
     normalise,
     normalise!,
     nsamples,
+    plot_section,
+    plot_section!,
     remove_trend,
     remove_trend!,
     starttime,
@@ -90,5 +97,7 @@ include("show.jl")
 # Methods
 include("filtering.jl")
 include("operations.jl")
+# Package extensions
+include("makie.jl")
 
 end
