@@ -226,3 +226,11 @@ end
 
 Seis.nsamples(ta::AbstractTraceArray) = size(Seis.trace(ta), 1)
 Seis.trace(ta::AbstractTraceArray) = ta.data
+
+"""
+    AbstractFourierTraceArray <: AbstractFourierTrace
+
+The abstract `AbstractFourierTraceArray` type is the supertype for
+trace array types which are in the frequency (Fourier) domain.
+"""
+abstract type AbstractFourierTraceArray <: Seis.AbstractFourierTrace end
