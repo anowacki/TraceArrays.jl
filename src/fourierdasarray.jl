@@ -151,13 +151,13 @@ julia> T = fft(t);
 julia> indmax = argmax(abs.(trace(T))) # Get index of maximum power
 CartesianIndex(6, 101)
 
-julia> f = frequencies(T)[indmax[1]] # Maximum frequency in Hz is ~1 as expected
+julia> f = frequencies(T)[indmax[1]] # Maximum frequency in Hz is ~0.5 as expected
 0.495049504950495
 
 julia> wavenumbers(T) # Wavenumbers corresponding to second dimension of `trace(f)`
 -9.999999999999998:0.099009900990099:9.900990099009901
 
-julia> λ⁻¹ = -wavenumbers(T)[indmax[2]] # Wavenumber of wave in m⁻¹ is -1/-5 ≈ 0.2 as expected
+julia> λ⁻¹ = -wavenumbers(T)[indmax[2]] # Wavenumber of wave in m⁻¹ is freq/v_app = -0.5/-5 ≈ 0.1 m⁻¹ as expected
 0.09900990099009732
 
 julia> f/λ⁻¹ # Wave velocity is frequency over wavenumber; ~5 m/s as expected
