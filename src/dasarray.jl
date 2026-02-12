@@ -282,7 +282,7 @@ to units of length-squared.  No unit conversion is
 made, so data which are in nanostrain convert to nm², nanostrain
 per second go to nm²/s, and so on.
 
-The number of channels is reduced in the operation, and each channels
+The number of channels is reduced in the operation, and each channel's
 coordinates are averaged in the new trace.
 
 ### Available algorithms
