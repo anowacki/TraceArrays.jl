@@ -1,7 +1,7 @@
 name = "TraceArrays"
 uuid = "f40dbe1e-5bdb-4f7a-87fd-ca86551f9e3f"
-authors = ["Andy Nowacki <a.nowacki@leeds.ac.uk> and contributors"]
 version = "0.1.1"
+authors = ["Andy Nowacki <a.nowacki@leeds.ac.uk> and contributors"]
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
@@ -9,6 +9,7 @@ Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FebusTools = "4ada55c4-7f3f-4c61-9ab9-dcbd632595bb"
 Geodesics = "6aaf26a4-c633-11e8-35ae-8904cb805353"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 Seis = "dd80f4d8-c2f6-58bd-9bd3-4635f134261d"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
@@ -20,6 +21,7 @@ TraceArraysMakieExt = "Makie"
 
 [compat]
 FFTW = "1"
+HDF5 = "0.16, 0.17"
 Makie = "0.20, 0.21, 0.22, 0.23, 0.24"
 julia = "1.10"
 
