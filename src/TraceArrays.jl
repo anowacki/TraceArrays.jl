@@ -20,6 +20,8 @@ export
     integrate_distance,
     remove_median_trace!,
     remove_median_trace,
+    # Submodules
+    read_optodas,
     # Plotting
     plot_heatmap,
     plot_heatmap!,
@@ -97,6 +99,10 @@ include("show.jl")
 # Methods
 include("filtering.jl")
 include("operations.jl")
+# Modules
+include("IO/InputOutput.jl")
+import .InputOutput: read_optodas
+
 # Package extensions
 include("makie.jl")
 
