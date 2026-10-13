@@ -90,6 +90,16 @@ function TraceArray(t::AbstractArray{<:AbstractTrace})
 end
 
 """
+    TraceArray(::AbstractTraceArray) -> trace_array
+
+Convert a different kind of `AbstractTraceArray` (such as a `DASArray`)
+to a `TraceArray`, losing any special spatial relationship between
+traces.
+"""
+TraceArray(t::AbstractTraceArray) = TraceArray(t.b, t.delta, t.evt, t.sta, Seis.trace(t), t.picks, t.meta)
+TraceArray(t::TraceArray) = t
+
+"""
     _matrix_from_traces(array_of_traces) -> ::Matrix, T, M, P
 
 Assuming that all the `AbstractTrace`s in `array_of_traces` have the same
