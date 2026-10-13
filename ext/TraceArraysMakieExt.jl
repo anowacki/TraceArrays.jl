@@ -8,6 +8,10 @@ import TraceArrays
 else
     import ..Makie
 end
+
+"Maximum number of points in each dimension which Makie seems able to display using GL"
+const _MAX_GL_POINTS = 20_000
+
 #=
     Record sections
 =#
@@ -62,6 +66,7 @@ function TraceArrays.plot_heatmap!(
     y_values=nothing;
     kwargs...
 )
+    _check_trace_size_and_warn(t)
     yvalues, _ = _get_y_values_and_label(t, y_values)
     Makie.heatmap!(ax, Seis.times(t), yvalues, Seis.trace(t); kwargs...)
 end
@@ -73,6 +78,7 @@ function TraceArrays.plot_heatmap(
     axis=(),
     kwargs...
 )
+    _check_trace_size_and_warn(t)
     yvalues, ylabel = _get_y_values_and_label(t, y_values)
     Makie.heatmap(gp, Seis.times(t), yvalues, Seis.trace(t);
         axis=(xlabel="Time / s", ylabel, axis...),
@@ -100,6 +106,7 @@ function TraceArrays.plot_heatmap!(
     t::TraceArrays.FourierDASArray;
     kwargs...
 )
+    _check_trace_size_and_warn(t)
     Makie.heatmap!(ax, TraceArrays.wavenumbers(t), Seis.frequencies(t), abs.(Seis.trace(t))'; kwargs...)
 end
 
@@ -109,6 +116,7 @@ function TraceArrays.plot_heatmap(
     axis=(),
     kwargs...
 )
+    _check_trace_size_and_warn(t)
     Makie.heatmap(
         gp, TraceArrays.wavenumbers(t), Seis.frequencies(t), abs.(Seis.trace(t))';
         axis=(xlabel="Wavenumber / m⁻¹", ylabel="Frequency / Hz", axis...),
@@ -194,6 +202,20 @@ function _default_y_values_and_label(t::TraceArrays.DASArray)
         ys./1000, "Cable distance / km"
     else
         ys, "Cable distance / m"
+    end
+end
+
+"""
+Avoid confusion if plotting too much raw data at once by telling the
+user what has happened.
+"""
+function _check_trace_size_and_warn(t)
+    if any(>=(_MAX_GL_POINTS), size(Seis.trace(t)))
+        @warn(
+            "Data are too likely large to be plotted; try `decimate`ing or " *
+            "`resample`ing data before calling `heatmap`.  Expect plot "*
+            "to be blank."
+        )
     end
 end
 
