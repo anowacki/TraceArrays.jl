@@ -143,4 +143,16 @@ using Test
             end
         end
     end
+
+    @testset "reverse[!]" begin
+        n = 3
+        t = TraceArray(; b=0, delta=1, data=rand(10, n))
+        t.sta = [Station(cha="$i") for i in 1:n]
+        @test reverse(t).sta == reverse(t.sta)
+        @test reverse(t).data == hcat(t.data[:,3], t.data[:,2], t.data[:,1])
+        @test reverse!(deepcopy(t)) == reverse(t)
+        t′ = reverse(t)
+        reverse!(t)
+        @test t == t′
+    end
 end

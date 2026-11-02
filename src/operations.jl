@@ -247,7 +247,7 @@ end
 Reverse the order of the channels in `t`.
 """
 function Base.reverse!(t::AbstractTraceArray)
-    reverse!(Seis.trace(t); dims=1)
+    reverse!(Seis.trace(t); dims=2)
     reverse!(t.sta)
     t
 end

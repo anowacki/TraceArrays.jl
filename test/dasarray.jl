@@ -16,4 +16,18 @@ using TraceArrays
             end
         end
     end
+
+    @testset "Conversion to TraceArray" begin
+        t = DASArray(;
+            b=1, delta=0.1, starting_distance=10, distance_spacing=5, data=randn(4, 3)
+        )
+        t′ = TraceArray(t)
+
+        @test t′ isa TraceArray
+        @test t′.delta == t.delta
+        @test t′.b == t.b
+        @test t′.evt == t.evt
+        @test t′.sta == t.sta
+        @test t′.data == t.data
+    end
 end

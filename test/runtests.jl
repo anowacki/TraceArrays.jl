@@ -6,4 +6,5 @@ using Test
     include("dasarray.jl")
     include("fourierdasarray.jl")
     include("operations.jl")
+    include("io.jl")
 end
